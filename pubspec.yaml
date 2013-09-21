@@ -4,4 +4,5 @@ author: Matthew Franglen <matthew.franglen@gmail.com>
 homepage: https://github.com/matthewfranglen/dart-builder
 description: Library to support more sophisticated build scripts
 dependencies:
+dev_dependencies:
   unittest: any
