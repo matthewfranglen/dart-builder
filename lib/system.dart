@@ -84,10 +84,21 @@ Future<String> ln(String target, String link) {
 */
 Future<Stream<String>> ls(String target) {
   return FileSystemEntity.type(target)
-    .then((FileSystemEntityType type) => type == FileSystemEntityType.DIRECTORY
-                                       ? new Directory(target).list().map((FileSystemEntity entity) => entity.path)
-                                       : new StreamController<String>().stream
-    );
+    .then((FileSystemEntityType type) {
+      if (type == FileSystemEntityType.DIRECTORY) {
+        return new Directory(target).list().map((FileSystemEntity entity) => entity.path);
+      }
+
+      final StreamController controller = new StreamController<String>();
+
+      // If the path exists, then add it, as it would get listed by the regular ls
+      if (type != FileSystemEntityType.NOT_FOUND) {
+        controller.add(target);
+      }
+      controller.close();
+
+      return controller.stream;
+    });
 }
 
 /*
