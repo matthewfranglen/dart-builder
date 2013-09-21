@@ -84,9 +84,6 @@ test_cp () {
   cpDirectoryDeepTest = new Completer();
   cpLinkTest          = new Completer();
 
-  // Saving this silly macro for posterity. This turns somewhat bare test definitions into the completer definitions.
-  // yi{PmaWvt,*mb:'a,'b-1 g/test/ .+1,+2 d:'a,'b-1 s/\v.*'(.*)'.*/\1/mb:'a,'b s/\-\(.\)/\u\1/'ay'bP:.,'a-2 s/\n/, /i  Completer A;] :'a,'b s/$/ = new Completer();/'a='b'a\=>'b\h'b] 
-
   test( 'cp-file', () =>
     cp(file, file3)
       .then((file) => exists_test(file, true))
