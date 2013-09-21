@@ -132,31 +132,37 @@ test_ls () {
 }
 
 test_rm () {
-  Future rmFileTest, rmDirectoryTest, rmDirectoryDeepTest, rmLinkTest;
+  Completer rmFileTest, rmDirectoryTest, rmDirectoryDeepTest, rmLinkTest;
 
-  rmFileTest          = rm(file);
-  rmDirectoryTest     = rm(dir_deep);
-  rmLinkTest          = rm(link);
-  rmDirectoryDeepTest = Future.wait([rmFileTest, rmDirectoryTest, rmLinkTest]).then((_) => rm(dir));
+  // This is to prevent the method calls from being made before the tests are called.
+  rmFileTest          = new Completer();
+  rmDirectoryTest     = new Completer();
+  rmLinkTest          = new Completer();
+  rmDirectoryDeepTest = new Completer();
 
   test( 'rm-file', () =>
-    rmFileTest
+    rm(file)
       .then((file) => exists_test(file, false))
+      .then((_) => rmFileTest.complete(true))
   );
   test( 'rm-directory', () =>
-    rmDirectoryTest
+    rm(dir_deep)
       .then((file) => exists_test(file, false))
+      .then((_) => rmDirectoryTest.complete(true))
   );
   test( 'rm-link', () =>
-    rmLinkTest
+    rm(link)
       .then((file) => exists_test(file, false))
+      .then((_) => rmLinkTest.complete(true))
   );
   test( 'rm-directory-deep', () =>
-    rmDirectoryDeepTest
+    Future.wait([rmFileTest.future, rmDirectoryTest.future, rmLinkTest.future])
+      .then((_) => rm(dir))
       .then((file) => exists_test(file, false))
+      .then((_) => rmDirectoryDeepTest.complete(true))
   );
 
-  return Future.wait([rmFileTest, rmDirectoryTest, rmDirectoryDeepTest, rmLinkTest]);
+  return Future.wait([rmFileTest.future, rmDirectoryTest.future, rmDirectoryDeepTest.future, rmLinkTest.future]);
 }
 
 main () {
