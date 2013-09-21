@@ -1,6 +1,79 @@
 library system;
 import 'dart:async';
 import 'dart:io';
+import 'package:path/path.dart' as path;
+
+/*
+   Copies a file or directory to a new location.
+*/
+Future<String> cp(String source, String dest) {
+  var copy_directory, copy_file, copy_link;
+
+  copy_directory = (String source, String dest) =>
+      mkdir(dest)
+        .then((_) => ls(source))
+        .then((Stream content) => content.pipe(new _CopyConsumer(source, dest)))
+        .then((_) => dest);
+
+  // Future.wait returns a list which is in the same order as the list passed to Future.wait
+  copy_file = (String source, String dest) =>
+      new File(dest)
+        .openWrite()
+        .addStream(new File(source).openRead())
+        .then((_) => dest);
+
+  copy_link = (String source, String dest) =>
+      new Future.value(new Link(source))
+        .then((Link source)   => source.isAbsolute ? source.target() : source.absolute.target())
+        .then((String target) => new Link(dest).create(target))
+        .then((_) => dest);
+
+
+  // Future.wait returns a list which is in the same order as the list passed to Future.wait
+  return Future.wait([
+      FileSystemEntity.type(source),
+      FileSystemEntity.type(dest)
+    ])
+    .then((types) {
+      if (types[1] == FileSystemEntityType.NOT_FOUND) {
+        switch (types[0]) {
+          case FileSystemEntityType.DIRECTORY: return copy_directory(source, dest);
+          case FileSystemEntityType.FILE:      return copy_file(source, dest);
+          case FileSystemEntityType.LINK:      return copy_link(source, dest);
+        }
+      } else {
+        // Not going to replace existing things.
+        // TODO Complete with error?
+        return dest;
+      }
+    });
+}
+
+/*
+   Receives the results of the directory listing and passes them to cp.
+*/
+class _CopyConsumer<String> implements StreamConsumer {
+  final Completer _completer = new Completer();
+  final String _source, _destination;
+
+  _CopyConsumer(this._source, this._destination);
+
+  Future addStream(Stream stream) {
+    stream.listen(
+        (String file) => cp(path.join(_source, file), path.join(_destination, file)),
+        onDone: ()    => _completer.complete(this)
+      );
+
+    return _completer.future;
+  }
+
+  Future close() {
+    if (!_completer.isCompleted) {
+      _completer.complete(this);
+    }
+    return _completer.future;
+  }
+}
 
 /*
    Creates a symlink to target at link.
@@ -18,10 +91,21 @@ Future<String> ln(String target, String link) {
 */
 Future<Stream<String>> ls(String target) {
   return FileSystemEntity.type(target)
-    .then((FileSystemEntityType type) => type == FileSystemEntityType.DIRECTORY
-                                       ? new Directory(target).list().map((FileSystemEntity entity) => entity.path)
-                                       : new StreamController<String>().stream
-    );
+    .then((FileSystemEntityType type) {
+      if (type == FileSystemEntityType.DIRECTORY) {
+        return new Directory(target).list().map((FileSystemEntity entity) => entity.path);
+      }
+
+      final StreamController controller = new StreamController<String>();
+
+      // If the path exists, then add it, as it would get listed by the regular ls
+      if (type != FileSystemEntityType.NOT_FOUND) {
+        controller.add(target);
+      }
+      controller.close();
+
+      return controller.stream;
+    });
 }
 
 /*

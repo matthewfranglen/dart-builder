@@ -1,4 +1,4 @@
-import "package:builder.dart";
+import "package:builder/builder.dart";
 import 'package:unittest/unittest.dart';
 
 BuildOperation make_op (List result, {String name: ''}) {
