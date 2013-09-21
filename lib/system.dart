@@ -12,22 +12,29 @@ Future<String> cp(String source, String dest) {
   copy_directory = (String source, String dest) =>
       mkdir(dest)
         .then((_) => ls(source))
-        .then((Stream content) => content.pipe(new _CopyConsumer(source, dest)));
+        .then((Stream content) => content.pipe(new _CopyConsumer(source, dest)))
+        .then((_) => dest);
 
   // Future.wait returns a list which is in the same order as the list passed to Future.wait
-  copy_file = (String source, String dest) => new File(dest).openWrite().addStream(new File(source).openRead());
+  copy_file = (String source, String dest) =>
+      new File(dest)
+        .openWrite()
+        .addStream(new File(source).openRead())
+        .then((_) => dest);
 
   copy_link = (String source, String dest) =>
       new Future.value(new Link(source))
         .then((Link source)   => source.isAbsolute ? source.target() : source.absolute.target())
-        .then((String target) => new Link(dest).create(target));
+        .then((String target) => new Link(dest).create(target))
+        .then((_) => dest);
 
 
   // Future.wait returns a list which is in the same order as the list passed to Future.wait
   return Future.wait([
       FileSystemEntity.type(source),
       FileSystemEntity.type(dest)
-    ]).then((types) {
+    ])
+    .then((types) {
       if (types[1] == FileSystemEntityType.NOT_FOUND) {
         switch (types[0]) {
           case FileSystemEntityType.DIRECTORY: return copy_directory(source, dest);
