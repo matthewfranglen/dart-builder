@@ -15,9 +15,7 @@ Future<String> cp(String source, String dest) {
         .then((Stream content) => content.pipe(new _CopyConsumer(source, dest)));
 
   // Future.wait returns a list which is in the same order as the list passed to Future.wait
-  copy_file = (String source, String dest) =>
-      Future.wait([new File(source).openRead(), new File(dest).openWrite()])
-        .then((files) => files[1].addStream(files[0]));
+  copy_file = (String source, String dest) => new File(dest).openWrite().addStream(new File(source).openRead());
 
   copy_link = (String source, String dest) =>
       new Future.value(new Link(source))
@@ -63,7 +61,9 @@ class _CopyConsumer<String> implements StreamConsumer {
   }
 
   Future close() {
-    _completer.complete(this);
+    if (!_completer.isCompleted) {
+      _completer.complete(this);
+    }
     return _completer.future;
   }
 }
