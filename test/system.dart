@@ -28,7 +28,7 @@ Future exists_test(String path, bool should) =>
         .then((FileSystemEntityType type) => type != FileSystemEntityType.NOT_FOUND)
         .then((bool exists) => expect(exists, equals(should)));
 
-test_mkdir () {
+Future test_mkdir () {
   Future mkdirTest, mkdirDeepTest;
 
   mkdirTest     = mkdir(dir);
@@ -46,10 +46,10 @@ test_mkdir () {
   return Future.wait([mkdirTest, mkdirDeepTest]);
 }
 
-make_test_files () =>
+Future make_test_files () =>
   Future.wait([file, file2].map((f) => new File(f).create()));
 
-test_link () {
+Future test_link () {
   Future lnFileTest, lnDirectoryTest, lnLinkTest;
 
   lnFileTest      = ln(file, link);
@@ -72,7 +72,7 @@ test_link () {
   return Future.wait([lnFileTest, lnDirectoryTest, lnLinkTest]);
 }
 
-test_cp () {
+Future test_cp () {
   Future cpFileTest, cpDirectoryTest, cpDirectoryDeepTest, cpLinkTest;
 
   cpFileTest          = cp(file, file3);
@@ -100,7 +100,7 @@ test_cp () {
   return Future.wait([cpFileTest, cpDirectoryTest, cpDirectoryDeepTest, cpLinkTest]);
 }
 
-test_ls () {
+Future test_ls () {
   Future lsFileTest, lsDirectoryTest, lsLinkTest;
 
   lsFileTest      = ls(file);
@@ -131,7 +131,7 @@ test_ls () {
   return Future.wait([lsFileTest, lsDirectoryTest, lsLinkTest]);
 }
 
-test_rm () {
+Future test_rm () {
   Completer rmFileTest, rmDirectoryTest, rmDirectoryDeepTest, rmLinkTest;
 
   // This is to prevent the method calls from being made before the tests are called.
