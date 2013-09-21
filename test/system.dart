@@ -7,10 +7,11 @@ import 'dart:async';
 // testing methods have been split into separate functions, but to avoid using
 // other calls in a ls test, the ls test depends on the mkdir test. Hence the
 // shared variables and the use of completers.
-String dir      = '/tmp/dart-builder-test';
-String cp_dir   = '/tmp/dart-builder-test/cp';
-String cp_dir2  = '/tmp/dart-builder-test/cp-2';
-String deep_dir = '/tmp/dart-builder-test/one/two/three';
+String dir           = '/tmp/dart-builder-test';
+String dir2          = '/tmp/dart-builder-test/cp';
+String dir3          = '/tmp/dart-builder-test/cp-2';
+String dir_deep      = '/tmp/dart-builder-test/one/two/three';
+String dir_deep_root = '/tmp/dart-builder-test/one';
 
 String file  = '${dir}/file';
 String file2 = '${dir}/file-2';
@@ -28,144 +29,134 @@ Future exists_test(String path, bool should) =>
         .then((bool exists) => expect(exists, equals(should)));
 
 test_mkdir () {
-  Completer mkdirTest, mkdirDeepTest;
+  Future mkdirTest, mkdirDeepTest;
 
-  mkdirTest     = new Completer();
-  mkdirDeepTest = new Completer();
+  mkdirTest     = mkdir(dir);
+  mkdirDeepTest = mkdir(dir_deep);
 
   test( 'mkdir', () =>
-      mkdir(dir)
+      mkdirTest
         .then((dir) => exists_test(dir, true))
-        .then((_)   => mkdirTest.complete(true))
     );
   test( 'mkdir-deep', () =>
-      mkdir(deep_dir)
+      mkdirDeepTest
         .then((dir) => exists_test(dir, true))
-        .then((_)   => mkdirDeepTest.complete(true))
     );
 
-  return Future.wait([mkdirTest.future, mkdirDeepTest.future]);
+  return Future.wait([mkdirTest, mkdirDeepTest]);
 }
 
 make_test_files () =>
   Future.wait([file, file2].map((f) => new File(f).create()));
 
 test_link () {
-  Completer lnFileTest, lnDirectoryTest, lnLinkTest;
+  Future lnFileTest, lnDirectoryTest, lnLinkTest;
 
-  lnFileTest      = new Completer();
-  lnDirectoryTest = new Completer();
-  lnLinkTest      = new Completer();
+  lnFileTest      = ln(file, link);
+  lnDirectoryTest = ln(dir, link2);
+  lnLinkTest      = lnFileTest.then((_) => ln(link, link3));
 
   test( 'ln-file', () =>
-      ln(file, link)
+      lnFileTest
         .then((link) => exists_test(dir, true))
-        .then((_)    => lnFileTest.complete(true))
     );
   test( 'ln-directory', () =>
-      ln(dir, link2)
+      lnDirectoryTest
         .then((link) => exists_test(dir, true))
-        .then((_)    => lnDirectoryTest.complete(true))
     );
   test( 'ln-file', () =>
-      ln(link, link3)
+      lnLinkTest
         .then((link) => exists_test(dir, true))
-        .then((_)    => lnLinkTest.complete(true))
     );
 
-  return Future.wait([lnFileTest.future, lnDirectoryTest.future, lnLinkTest.future]);
+  return Future.wait([lnFileTest, lnDirectoryTest, lnLinkTest]);
 }
 
 test_cp () {
-  Completer cpFileTest, cpDirectoryTest, cpDirectoryDeepTest, cpLinkTest;
+  Future cpFileTest, cpDirectoryTest, cpDirectoryDeepTest, cpLinkTest;
 
-  cpFileTest          = new Completer();
-  cpDirectoryTest     = new Completer();
-  cpDirectoryDeepTest = new Completer();
-  cpLinkTest          = new Completer();
+  cpFileTest          = cp(file, file3);
+  cpDirectoryTest     = cp(dir_deep, dir2);
+  cpDirectoryDeepTest = cp(dir, dir3);
+  cpLinkTest          = cp(link, link4);
 
   test( 'cp-file', () =>
-    cp(file, file3)
+    cpFileTest
       .then((file) => exists_test(file, true))
-      .then((_)    => cpFileTest.complete(true))
   );
   test( 'cp-directory', () =>
-    // deep dir is the dir within lots of directories
-    cp(deep_dir, cp_dir)
+    cpDirectoryTest
       .then((file) => exists_test(file, true))
-      .then((_)    => cpDirectoryTest.complete(true))
   );
   test( 'cp-directory-deep', () =>
-    // dir contains deep dir and all the other things
-    cp(dir, cp_dir2)
+    cpDirectoryDeepTest
       .then((file) => exists_test(file, true))
-      .then((_)    => cpDirectoryDeepTest.complete(true))
   );
   test( 'cp-link', () =>
-    cp(link, link4)
+    cpLinkTest
       .then((file) => exists_test(file, true))
-      .then((_)    => cpLinkTest.complete(true))
   );
 
-  return Future.wait([cpFileTest.future, cpDirectoryTest.future, cpDirectoryDeepTest.future, cpLinkTest.future]);
+  return Future.wait([cpFileTest, cpDirectoryTest, cpDirectoryDeepTest, cpLinkTest]);
 }
 
 test_ls () {
-  Completer lsFileTest, lsDirectoryTest, lsLinkTest;
+  Future lsFileTest, lsDirectoryTest, lsLinkTest;
 
-  lsFileTest      = new Completer();
-  lsDirectoryTest = new Completer();
-  lsLinkTest      = new Completer();
+  lsFileTest      = ls(file);
+  lsDirectoryTest = ls(dir);
+  lsLinkTest      = ls(link);
 
   test( 'ls-file', () =>
-    ls(file)
-      .then((f) => expect(f, equals(file)))
-      .then((_) => lsFileTest.complete(true))
+    lsFileTest
+      .then((Stream stream) => stream.toList())
+      .then((List<String> files) => expect(files, equals([file])))
   );
   test( 'ls-directory', () =>
-    ls(dir)
-      .then((d) => expect(d, equals(dir)))
-      .then((_) => lsDirectoryTest.complete(true))
+    lsDirectoryTest
+      .then((Stream stream) => stream.toList())
+      .then((List<String> files) {
+        List<String> expected = [dir2, dir3, dir_deep_root, file, file2, file3, link, link2, link3, link4];
+        files.sort();
+        expected.sort();
+        return expect(files, equals(expected));
+      })
   );
   test( 'ls-link', () =>
-    ls(link)
-      .then((f) => expect(f, equals(link)))
-      .then((_) => lsLinkTest.complete(true))
+    lsLinkTest
+      .then((Stream stream) => stream.toList())
+      .then((List<String> files) => expect(files, equals([link])))
   );
 
-  return Future.wait([lsFileTest.future, lsDirectoryTest.future, lsLinkTest.future]);
+  return Future.wait([lsFileTest, lsDirectoryTest, lsLinkTest]);
 }
 
 test_rm () {
-  Completer rmFileTest, rmDirectoryTest, rmDirectoryDeepTest, rmLinkTest;
+  Future rmFileTest, rmDirectoryTest, rmDirectoryDeepTest, rmLinkTest;
 
-  rmFileTest          = new Completer();
-  rmDirectoryTest     = new Completer();
-  rmDirectoryDeepTest = new Completer();
-  rmLinkTest          = new Completer();
+  rmFileTest          = rm(file);
+  rmDirectoryTest     = rm(dir_deep);
+  rmLinkTest          = rm(link);
+  rmDirectoryDeepTest = Future.wait([rmFileTest, rmDirectoryTest, rmLinkTest]).then((_) => rm(dir));
 
   test( 'rm-file', () =>
-    rm(file)
+    rmFileTest
       .then((file) => exists_test(file, false))
-      .then((_)    => rmFileTest.complete(true))
   );
   test( 'rm-directory', () =>
-    rm(file)
+    rmDirectoryTest
       .then((file) => exists_test(file, false))
-      .then((_)    => rmDirectoryTest.complete(true))
   );
   test( 'rm-link', () =>
-    rm(file)
+    rmLinkTest
       .then((file) => exists_test(file, false))
-      .then((_)    => rmLinkTest.complete(true))
   );
   test( 'rm-directory-deep', () =>
-    rm(file)
+    rmDirectoryDeepTest
       .then((file) => exists_test(file, false))
-      .then((_)    => rmDirectoryDeepTest.complete(true))
   );
 
-  return Future.wait([rmFileTest.future, rmDirectoryTest.future, rmDirectoryDeepTest.future, rmLinkTest.future]);
+  return Future.wait([rmFileTest, rmDirectoryTest, rmDirectoryDeepTest, rmLinkTest]);
 }
 
 main () {
