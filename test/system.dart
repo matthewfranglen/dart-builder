@@ -30,7 +30,7 @@ Future exists_test(String path, bool should) =>
 test_mkdir () {
   Completer mkdirTest, mkdirDeepTest;
 
-  mkdirTest = new Completer();
+  mkdirTest     = new Completer();
   mkdirDeepTest = new Completer();
 
   test( 'mkdir', () =>
@@ -53,9 +53,9 @@ make_test_files () =>
 test_link () {
   Completer lnFileTest, lnDirectoryTest, lnLinkTest;
 
-  lnFileTest = new Completer();
+  lnFileTest      = new Completer();
   lnDirectoryTest = new Completer();
-  lnLinkTest = new Completer();
+  lnLinkTest      = new Completer();
 
   test( 'ln-file', () =>
       ln(file, link)
@@ -65,12 +65,12 @@ test_link () {
   test( 'ln-directory', () =>
       ln(dir, link2)
         .then((link) => exists_test(dir, true))
-        .then((_)    => lnFileTest.complete(true))
+        .then((_)    => lnDirectoryTest.complete(true))
     );
   test( 'ln-file', () =>
       ln(link, link3)
         .then((link) => exists_test(dir, true))
-        .then((_)    => lnFileTest.complete(true))
+        .then((_)    => lnLinkTest.complete(true))
     );
 
   return Future.wait([lnFileTest.future, lnDirectoryTest.future, lnLinkTest.future]);
@@ -111,21 +111,29 @@ test_cp () {
 }
 
 test_ls () {
-  Completer lsFileTest, lsDirectoryTest, lsLink;
+  Completer lsFileTest, lsDirectoryTest, lsLinkTest;
 
   lsFileTest      = new Completer();
   lsDirectoryTest = new Completer();
   lsLinkTest      = new Completer();
 
-  test( 'ls-file', () {
+  test( 'ls-file', () =>
+    ls(file)
+      .then((f) => expect(f, equals(file)))
+      .then((_) => lsFileTest.complete(true))
+  );
+  test( 'ls-directory', () =>
+    ls(dir)
+      .then((d) => expect(d, equals(dir)))
+      .then((_) => lsDirectoryTest.complete(true))
+  );
+  test( 'ls-link', () =>
+    ls(link)
+      .then((f) => expect(f, equals(link)))
+      .then((_) => lsLinkTest.complete(true))
+  );
 
-  });
-  test( 'ls-directory', () {
-
-  });
-  test( 'ls-link', () {
-
-  });
+  return Future.wait([lsFileTest.future, lsDirectoryTest.future, lsLinkTest.future]);
 }
 
 test_rm () {
